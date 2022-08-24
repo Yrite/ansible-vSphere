@@ -1,15 +1,15 @@
 ---
-- hosts: ad_primary
-  vars_files:
-    - env/nested_ad.yml
-    - env/nested_vcsa_master.yml
-  tasks:
-    - name: Create vcsa master server record
-      community.windows.win_dns_record:
-        name: "{{ vcsa_name }}"
-        type: "A"
-        value: "{{ vcsa_ip }}"
-        zone: "{{ domain }}"
+# - hosts: ad_primary
+#   vars_files:
+#     - env/nested_ad.yml
+#     - env/nested_vcsa_master.yml
+#   tasks:
+#     - name: Create vcsa master server record
+#       community.windows.win_dns_record:
+#         name: "{{ vcsa_name }}"
+#         type: "A"
+#         value: "{{ vcsa_ip }}"
+#         zone: "{{ domain }}"
 
 - hosts: localhost
   name: Deploy VMWare vCenter Master
@@ -21,17 +21,17 @@
     - role: vcsa_deploy
 
 # Deployment Slave VCSA
-- hosts: ad_primary
-  vars_files:
-    - env/nested_ad.yml
-    - env/nested_vcsa_slave.yml
-  tasks:
-    - name: Create vcsa slave server record
-      community.windows.win_dns_record:
-        name: "{{ vcsa_name }}"
-        type: "A"
-        value: "{{ vcsa_ip }}"
-        zone: "{{ domain }}"
+# - hosts: ad_primary
+#   vars_files:
+#     - env/nested_ad.yml
+#     - env/nested_vcsa_slave.yml
+#   tasks:
+#     - name: Create vcsa slave server record
+#       community.windows.win_dns_record:
+#         name: "{{ vcsa_name }}"
+#         type: "A"
+#         value: "{{ vcsa_ip }}"
+#         zone: "{{ domain }}"
 
 - hosts: localhost
   name: Deploy VMWare vCenter Slave
