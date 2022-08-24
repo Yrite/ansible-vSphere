@@ -1,7 +1,7 @@
 ---
 ## VCSA variables ##
 temp_folder:          "/tmp"
-iso_source_file:      "/mnt/VMware-VCSA-all-7.0.2-18455184.iso"
+iso_source_file:      "/tmp/VMware-VCSA-all-7.0.2-18455184.iso"
 vcsa_template:        "vCenter_v7.0.0_embedded_vCSA_replication_on_ESXi.j2"
 vcsa_network:         "VM Network"
 vcsa_datastore:       "local"
