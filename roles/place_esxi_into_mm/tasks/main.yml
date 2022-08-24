@@ -1,0 +1,4 @@
+---
+# tasks file for place_esxi_into_mm
+# - include_tasks: place_esxi_into_mm.yml
+- include_tasks: get_vm_info.yml

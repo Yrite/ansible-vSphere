@@ -1,0 +1,12 @@
+- name: Enter  Maintenance Mode
+  community.vmware.vmware_maintenancemode:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.name }}"
+    evacuate: true
+    timeout: 3600
+    state: present
+  delegate_to: localhost
+  loop: "{{ esxi_hosts }}"

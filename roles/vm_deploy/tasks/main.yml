@@ -1,0 +1,48 @@
+---
+# tasks file for copy_template
+- name: Check if the VM Template is already deployed
+  community.vmware.vmware_guest_info:
+    hostname: '{{ esxi_address }}'
+    username: '{{ esxi_username }}'
+    password: '{{ esxi_password }}'  
+    validate_certs: no 
+    name: '{{ inventory_hostname }}'
+    schema: vsphere
+    properties: ["overallStatus"]
+  register: template_status
+  no_log: true
+  ignore_errors: true
+  delegate_to: localhost
+
+- name: Deploy vm from ovf
+  community.vmware.vmware_deploy_ovf:
+    hostname: '{{ esxi_address }}'
+    username: '{{ esxi_username }}'
+    password: '{{ esxi_password }}'
+    datastore: '{{ esxi_datastore }}'  
+    validate_certs: no
+    networks: {"VM Network": "VM Network"}
+    name: '{{ inventory_hostname }}'
+    ovf: '{{ src_template }}'
+    power_on: yes
+  delegate_to: localhost
+  register: deploy
+  when: 
+    - template_status is failed
+
+- name: Wait for VMware tools to become available by name
+  community.vmware.vmware_guest_tools_wait:
+    hostname: "{{ esxi_address }}"
+    username: "{{ esxi_username }}"
+    password: "{{ esxi_password }}"
+    validate_certs: no
+    name: '{{ inventory_hostname }}'
+  delegate_to: localhost
+  register: facts
+
+# tasks file for configure vm
+- name: Include task list in play only if the condition is true
+  include_tasks: "prepare_vm.yml"
+  when: 
+    - deploy is changed
+

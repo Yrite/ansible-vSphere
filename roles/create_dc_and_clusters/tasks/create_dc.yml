@@ -1,0 +1,10 @@
+---
+- name: Create Datacenter
+  vmware_datacenter:
+    hostname: '{{ vcsa_fqdn }}'
+    username: 'administrator@{{ vcsa_sso_domain }}'
+    password: '{{ vcsa_password }}'
+    validate_certs: false
+    datacenter_name: '{{ vcsa_datacenter }}'
+    state: present
+  delegate_to: localhost

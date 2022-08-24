@@ -1,0 +1,32 @@
+- hosts: localhost
+  name: Configure VMWare vCenter Master
+  vars_files:
+    - env/nested_vcsa_master.yml
+  vars:
+    iscsi : "false"
+  become: true
+  tasks:
+    - name: Make sure requirements are met to run vmware_guest_snapshot module
+      become: true
+      pip:
+        name: PyVmomi
+        state: present
+  roles:
+    - role: vcsa_configure
+  
+- hosts: vcsa
+  gather_facts: false
+  name: Configure VMWare vCenter Master
+  vars_files:
+    - env/nested_vcsa_master.yml
+  vars:
+    iscsi : "false"
+  become: true
+  tasks:
+    - name: Make sure requirements are met to run vmware_guest_snapshot module
+      become: true
+      pip:
+        name: PyVmomi
+        state: present
+  roles:
+    - role: vcsa_configure

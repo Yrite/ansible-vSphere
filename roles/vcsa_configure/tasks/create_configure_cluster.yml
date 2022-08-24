@@ -1,0 +1,69 @@
+- name: Create Clusters
+  community.vmware.vmware_cluster:
+    hostname: '{{ vcsa_fqdn }}'
+    username: 'administrator@{{ vcsa_sso_domain }}'
+    password: '{{ vcsa_password }}'
+    datacenter_name: '{{ vcsa_datacenter }}'
+    cluster_name: "{{ item.key }}"
+    validate_certs: False
+    state: present
+  loop: "{{ esxi_clusters | dict2items }}"
+
+- name: Enable DRS on each Cluster, if applicable
+  community.vmware.vmware_cluster_drs:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: "{{ vcsa_datacenter }}"
+    cluster_name: "{{ item.key }}"
+    enable_drs: "{{ item.value.DRS }}"
+  loop: "{{ esxi_clusters | dict2items }}"
+ 
+# - name: Enable HA without admission control
+#   community.vmware.vmware_cluster_ha:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     validate_certs: False
+#     datacenter_name: "{{ vcsa_datacenter }}"
+#     cluster_name: "{{ item.key }}"
+#     enable: "{{ item.value.HA }}"
+#     ha_host_monitoring: "{{ item.value.cluster_ha_host_monitoring }}"
+#     ha_vm_monitoring: "{{ item.value.cluster_ha_vm_monitoring }}"
+#   loop: "{{ esxi_clusters | dict2items }}"
+#   delegate_to: localhost
+
+
+- name: Enable HA with admission control
+  community.vmware.vmware_cluster_ha:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: "{{ vcsa_datacenter }}"
+    cluster_name: "{{ item.key }}"
+    enable: "{{ item.value.HA }}"
+    ha_vm_monitoring: "{{ item.value.cluster_ha_vm_monitoring }}"
+    apd_response: "{{ item.value.cluster_apd_response }}"
+    pdl_response: "{{ item.value.cluster_pdl_response }}"
+    reservation_based_admission_control:
+     auto_compute_percentages: "{{ item.value.cluster_auto_compute_percentages }}"
+     failover_level: 1
+  loop: "{{ esxi_clusters | dict2items }}"
+  delegate_to: localhost
+
+
+# - name: Enable EVC Mode
+#   community.vmware.vmware_evc_mode:
+#      hostname: "{{ vcsa_fqdn  }}"
+#      username: "administrator@{{ vcsa_sso_domain }}"
+#      password: "{{ vcsa_password }}"
+#      datacenter_name: "{{ vcsa_datacenter }}"
+#      cluster_name: "{{ item.key }}"
+#      validate_certs: False
+#      evc_mode: "{{ item.value.cluster_evc_mode }}"
+#      state: present
+#   loop: "{{ esxi_clusters | dict2items }}"
+#   delegate_to: localhost
+#   register: enable_evc

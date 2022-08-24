@@ -1,0 +1,119 @@
+---
+- name: Gather iSCSI configuration information of ESXi host
+  community.vmware.vmware_host_disk_info:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: '{{ item.name }}'
+  delegate_to: localhost
+  loop: "{{ esxi_hosts }}"
+  register: iscsi_info
+
+- name: iscsi info
+  debug:
+    msg: iscsi info = {{ iscsi_info.results }}
+  loop: "{{ esxi_hosts  }}"
+
+- name: Build datastores to add
+  set_fact: 
+    datastores_to_add: >-
+      [
+        {% for host in esxi_hosts %}
+        {% if "datastores" in esxi_clusters[host.cluster] %}
+            {% for ds_cluster in esxi_clusters[host.cluster].datastores %}
+                {% for datastore in esxi_clusters[host.cluster].datastores[ds_cluster] %} 
+                    {
+                        "esxi_name":      "{{ host.name }}",
+                        "esxi_cluster":   "{{ host.cluster }}",
+                        "datastore_name": "{{ datastore.name }}",
+                        "datastore_naa":  "{{ datastore.naa }}",
+                    },
+                {% endfor%}
+            {% endfor %}
+        {% endif %}
+        {% endfor %}
+      ]
+
+- name: Build datastores to add single host
+  set_fact:
+      clusters_single_hosts: |
+        [
+          {% for cluster in esxi_clusters %}
+          {% set cluster_hosts = datastores_to_add | selectattr("esxi_cluster", "equalto", cluster) %}
+          {% if cluster_hosts | length > 0 %}
+              {% for ds_cluster in esxi_clusters[cluster].datastores %}
+                  {% for ds in esxi_clusters[cluster]['datastores'][ds_cluster] %}
+                      {{ cluster_hosts | first | combine({'datastore_name': ds.name}) | combine({'datastore_naa': ds.naa}) }},
+                  {% endfor %}
+              {% endfor %}
+          {% endif %}
+          {% endfor %}
+        ]
+
+- name: Mount VMFS datastores to ESXi
+  community.vmware.vmware_host_datastore:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datastore_name: "{{ item.datastore_name }}"
+    datastore_type: "vmfs"
+    vmfs_device_name: "{{ item.datastore_naa }}"
+    vmfs_version: 6
+    esxi_hostname: "{{ item.esxi_name }}"
+    state: present
+  delegate_to: localhost
+  loop: "{{ clusters_single_hosts }}"
+  ignore_errors: yes
+
+
+- name: Set fact datastore clusters
+  set_fact:
+        ds_clusters: |
+            [
+                {% for cluster in esxi_clusters %}
+                {% if "datastores" in esxi_clusters[cluster] %}
+                    {% for ds_cluster in esxi_clusters[cluster].datastores %}
+                    {% for datastore in esxi_clusters[cluster].datastores[ds_cluster] %} 
+                        {
+                            "ds_cluster":   "{{ ds_cluster }}",
+                            "datastore_name": "{{ datastore.name }}",
+                            "datastore_naa":  "{{ datastore.naa }}",
+                        },
+                    {% endfor %}
+                    {% endfor %}
+                {% endif %}
+                {% endfor %}
+            ]
+
+- name: Set fact datastore clusters name
+  set_fact:
+      ds_clusters_name: "{{ ds_clusters | map(attribute='ds_cluster') | list | unique }}"
+
+- name: Create datastore cluster and enable SDRS
+  community.vmware.vmware_datastore_cluster:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: '{{ vcsa_datacenter }}'
+    datastore_cluster_name: '{{ item }}'
+    enable_sdrs: True
+    state: present
+  delegate_to: localhost
+  loop: "{{ ds_clusters_name }}"
+
+- name: Add datastore to the given datastore cluster
+  community.vmware.vmware_datastore_cluster_manager:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: '{{ vcsa_datacenter }}'
+    datastore_cluster_name: '{{ item.ds_cluster }}'
+    datastores: "{{ item.datastore_name }}"
+    state: present
+  delegate_to: localhost
+  loop: "{{ ds_clusters }}"
+  ignore_errors: yes

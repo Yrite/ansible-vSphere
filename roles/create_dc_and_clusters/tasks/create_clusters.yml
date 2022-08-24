@@ -1,0 +1,10 @@
+- name: Create Clusters
+  community.vmware.vmware_cluster:
+    hostname: '{{ vcsa_fqdn }}'
+    username: 'administrator@{{ vcsa_sso_domain }}'
+    password: '{{ vcsa_password }}'
+    datacenter_name: '{{ vcsa_datacenter }}'
+    cluster_name: "{{ item.key }}"
+    validate_certs: False
+    state: present
+  loop: "{{ esxi_clusters | dict2items }}"

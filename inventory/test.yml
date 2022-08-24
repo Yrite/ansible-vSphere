@@ -1,0 +1,8 @@
+all:
+  children:
+    pwm:
+      vars:
+        esxi_password: 'A$@A96#qli'
+        vcenter_password: 'P@ssw0rd'
+        tomcat_admin_password: '{{ vault_tomcat_admin_password }}'
+        pwm_applicationpath: /media/pwm

@@ -1,0 +1,16 @@
+---
+- name: Provide information about vCenter folders
+  community.vmware.vmware_folder_info:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter: PD00
+  delegate_to: localhost
+  register: vcenter_folder_info
+
+- name: pring vcenter folder info 
+  debug:
+   msg:  "{{ vcenter_folder_info }}"
+    
+  

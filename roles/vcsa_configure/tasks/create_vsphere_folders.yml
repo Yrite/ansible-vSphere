@@ -1,0 +1,42 @@
+
+# - name: print host folder
+#   debug:
+#     msg: "{{ vSphere_folder | json_query('host_folder[*].name') }}"
+  
+
+- name: print host folder
+  debug:
+    msg: "{{ item.type }}"
+  loop: "{{ vSphere_folders }}" 
+
+
+- name: Create a Host folder on given datacenter
+  community.vmware.vcenter_folder:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    datacenter_name: "PD00"
+    folder_name: "{{ item.name }}" 
+    folder_type: "{{ item.type }}"
+    validate_certs: False
+    state: present
+  delegate_to: localhost
+  loop: "{{ vSphere_folders }}"
+
+- name: Create a Host folder on given datacenter
+  community.vmware.vcenter_folder:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    datacenter_name: "PD00"
+    parent_folder: "{{ item.0.name }}" 
+    folder_name: "{{ item.1 }}" 
+    validate_certs: False
+    state: present
+  delegate_to: localhost
+  loop: "{{ vSphere_folders | subelements('subfolders', 'skip_missing=True') }}"
+
+
+
+
+

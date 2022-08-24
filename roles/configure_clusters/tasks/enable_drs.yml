@@ -1,0 +1,10 @@
+- name: Enable DRS on each Cluster, if applicable
+  community.vmware.vmware_cluster_drs:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: "{{ vcsa_datacenter }}"
+    cluster_name: "{{ item.key }}"
+    enable_drs: "{{ item.value.DRS }}"
+  loop: "{{ esxi_clusters | dict2items }}"

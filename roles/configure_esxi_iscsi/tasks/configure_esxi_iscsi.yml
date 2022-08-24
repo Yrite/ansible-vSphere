@@ -1,0 +1,95 @@
+---
+- name: Enable iSCSI on
+  community.vmware.vmware_host_iscsi:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.name }}"
+    state: enabled
+  loop: "{{ esxi_hosts }}"
+  
+- name: Gather iSCSI configuration information of ESXi host
+  community.vmware.vmware_host_iscsi_info:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.name }}"
+  loop: "{{ esxi_hosts }}"
+  register: iscsi_info
+
+- name: vhba name
+  set_fact:
+    iscsi_names: "{{ iscsi_info | json_query(query) }}"
+  vars:
+      query: "results[*].iscsi_properties.vmhba_name"
+
+- name: esxi_hosts adding vhba information
+  set_fact:
+    esxi_hosts_vmhba: "{{ esxi_hosts_vmhba | default([]) +  [ item | combine( {'vmhba': iscsi_names[host] } )] }}"
+  loop: "{{ esxi_hosts }}"
+  loop_control:
+    index_var: host
+
+- name: iscsi info
+  debug:
+    msg: iscsi info = {{ esxi_hosts_vmhba }}
+  loop: "{{ esxi_hosts  }}"
+
+- name: Add VMKernels to iSCSI config of ESXi
+  community.vmware.vmware_host_iscsi:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.name }}"
+    iscsi_config:
+      vmhba_name: "{{ item.vmhba }}"
+      port_bind:
+        - vmk1
+        - vmk2
+    state: present
+  loop: "{{ esxi_hosts_vmhba }}"
+
+- name: Add a dynamic target to iSCSI config of ESXi
+  community.vmware.vmware_host_iscsi:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.0.name }}"
+    iscsi_config:
+      vmhba_name: "{{ item.0.vmhba }}"
+      send_target:
+        address: "{{ item.1.ip }}"
+    state: present
+  loop: "{{ esxi_hosts_vmhba | subelements('iscsi_targets', 'skip_missing=True') }}"
+
+- name: Add a static target to iSCSI config of ESXi
+  community.vmware.vmware_host_iscsi:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.0.name }}"
+    iscsi_config:
+      vmhba_name: "{{ item.0.vmhba }}"
+      static_target:
+        iscsi_name: "{{ item.1.iqn }}"
+        address: "{{ item.1.ip }}"
+    state: present
+  loop: "{{ esxi_hosts_vmhba | subelements('iscsi_targets', 'skip_missing=True') }}"
+  loop_control:
+    index_var: host
+
+- name: Rescan HBA's for a given ESXi host and refresh storage system objects
+  community.vmware.vmware_host_scanhba:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: '{{ item.name }}'
+    refresh_storage: true
+  delegate_to: localhost
+  loop: "{{ esxi_hosts }}"

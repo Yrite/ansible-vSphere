@@ -1,0 +1,5 @@
+---
+## esxi variables
+esxi_address: 10.10.1.102
+esxi_username: root
+esxi_password: Pa$$w0rd

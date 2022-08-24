@@ -1,0 +1,4 @@
+---
+# tasks file for add_esxi_to_vcenter
+# - include_tasks: add_esxi_to_specific_folder.yml
+- include_tasks: add_esxi_to_specific_cluster.yml

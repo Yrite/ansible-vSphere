@@ -1,0 +1,9 @@
+---
+- hosts: ad
+  gather_facts: false
+  vars_files:
+    - env/target_esxi.yml
+    - env/nested_ad.yml
+  roles:
+    - role: vm_deploy
+    - role: active_directory

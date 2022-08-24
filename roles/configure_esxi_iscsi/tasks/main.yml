@@ -1,0 +1,3 @@
+---
+# tasks file for configure_esxi_iscsi
+- include_tasks: configure_esxi_iscsi.yml

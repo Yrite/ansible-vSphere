@@ -1,0 +1,58 @@
+
+- name: Add a VMware vSwitch with multiple NICs
+  community.vmware.vmware_vswitch:
+    hostname: "{{ item.0.name }}"
+    username: "{{ item.0.user }}"
+    password: "{{ item.0.password }}"
+    validate_certs: False
+    switch: "{{ item.1.name }}"
+    nics: "{{ item.1.uplink }}"
+  loop: "{{ esxi_hosts | subelements('esxi_vswitch', 'skip_missing=True') }}"
+  delegate_to: localhost
+
+- name: Add Network VM Portgroup for VSS
+  community.vmware.vmware_portgroup:
+      hostname: "{{ item.0.name }}"
+      username: "{{ item.0.user }}"
+      password: "{{ item.0.password }}"
+      validate_certs: False
+      esxi_hostname: '{{ item.0.name }}'
+      switch: "{{ item.1.vmswitch }}"
+      portgroup: "{{ item.1.name }}"
+  loop: "{{ esxi_hosts | subelements('esxi_vmks', 'skip_missing=True') }}"
+  delegate_to: localhost
+
+-  name: Add vmkernel port
+   community.vmware.vmware_vmkernel:
+      hostname: "{{ item.0.name }}"
+      username: "{{ item.0.user }}"
+      password: "{{ item.0.password }}"
+      validate_certs: False
+      esxi_hostname: '{{ item.0.name }}'
+      vswitch_name: "{{ item.1.vmswitch }}"
+      portgroup_name: "{{ item.1.name }}"
+      network:
+        type: 'static'
+        ip_address: "{{ item.1.ipv4 }}"
+        subnet_mask: "{{ item.1.netmask }}"
+      state: present
+   loop: "{{ esxi_hosts | subelements('esxi_vmks', 'skip_missing=True') }}"
+   delegate_to: localhost
+  
+- name: Add vmkernel port
+  community.vmware.vmware_vmkernel:
+      hostname: "{{ item.0.name }}"
+      username: "{{ item.0.user }}"
+      password: "{{ item.0.password }}"
+      validate_certs: False
+      esxi_hostname: '{{ item.0.name }}'
+      vswitch_name: "{{ item.1.vmswitch }}"
+      portgroup_name: "{{ item.1.name }}"
+      enable_vmotion: true
+      network:
+        type: 'static'
+        ip_address: "{{ item.1.ipv4 }}"
+        subnet_mask: "{{ item.1.netmask }}"
+      state: present
+  loop: "{{ esxi_hosts | subelements('esxi_vmks', 'skip_missing=True') }}"
+  delegate_to: localhost

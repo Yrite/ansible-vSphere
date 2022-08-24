@@ -1,0 +1,6 @@
+---
+# tasks file for configure_clusters
+- include_tasks: enable_drs.yml
+# - include_tasks: enable_evc.yml
+# - include_tasks: enable_ha_with_ac.yml
+- include_tasks: enable_ha_without_ac.yml

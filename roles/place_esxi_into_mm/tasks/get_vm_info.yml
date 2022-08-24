@@ -1,0 +1,15 @@
+---
+- name: Gather all registered virtual machines
+  community.vmware.vmware_vm_info:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+  delegate_to: localhost
+  register: vminfo
+
+- name: print vm info 
+  debug:
+    msg: "{{ vminfo }}"
+    
+

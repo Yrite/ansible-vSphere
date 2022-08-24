@@ -1,0 +1,3 @@
+---
+# tasks file for configure_datastores_create_srds_clusters
+- include_tasks: configure_datastores.yml

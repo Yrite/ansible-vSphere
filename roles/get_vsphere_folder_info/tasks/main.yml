@@ -1,0 +1,3 @@
+---
+# tasks file for get_vsphere_folder_info
+- include_tasks: vSphere_folder_info.yml

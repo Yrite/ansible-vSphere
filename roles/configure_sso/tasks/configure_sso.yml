@@ -1,0 +1,90 @@
+---
+- name: vCenter Login
+  uri:
+    url: "https://{{vcsa_fqdn}}/rest/com/vmware/cis/session"
+    force_basic_auth: yes
+    method: POST
+    user: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: no
+  register: login
+  delegate_to: localhost
+
+- name: enable ssh
+  uri:
+    url: "https://{{ vcsa_ip }}/rest/appliance/access/ssh"
+    method: PUT
+    body: '{"enabled": true}'
+    force_basic_auth: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ login.set_cookie }}"
+    body_format: json
+  delegate_to: localhost
+
+- name: enable SHELL
+  uri:
+    url: "https://{{ vcsa_ip }}/rest/appliance/access/shell"
+    method: PUT
+    body: '{"config": {"enabled": true,"timeout": 1 }}'
+    force_basic_auth: yes
+    validate_certs: no
+    headers:
+      Cookie: "{{ login.set_cookie }}"
+    body_format: json
+  delegate_to: localhost
+
+- name: Run command inside a virtual machine
+  community.vmware.vmware_vm_shell:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    vm_username: root
+    vm_password: "{{ vcsa_password }}"
+    vm_id: "{{ vcsa_name }}"
+    vm_shell: /usr/bin/chsh
+    vm_shell_args: "-s /bin/bash root"
+  delegate_to: localhost
+  register: shell_command_output
+
+- name: Run command inside a virtual machine
+  community.vmware.vmware_vm_shell:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    vm_username: root
+    vm_password: "{{ vcsa_password }}"
+    vm_id: "{{ vcsa_name }}"
+    vm_shell: /usr/bin/mkdir
+    vm_shell_args: "/root/test1"
+  delegate_to: localhost
+  register: shell_command_output
+
+# - name: Changing Shell To BASH
+#   command: "{{ item }}"
+#   with_items:
+#     - shell.set --enabled true
+#     - shell
+#     - chsh -s /bin/bash root
+
+- name: Managing VCSA AD Domain Membership
+  shell: /opt/vmware/bin/sso-config.sh -add_identity_source -type adldap -baseUserDN "{{ baseUserDN }}" -baseGroupDN "{{ baseGroupDN }}" -domain "{{ vcsa_domain }}" -alias "{{ alias }}" -username "{{ username }}" -password "NPepiF4CIsz12pSZ7bCv" -primaryURL "{{ primaryURL }}"
+  register: vcsa_domain_status
+  changed_when: false
+
+- name: Domain Status
+  debug:
+    msg: "{{ shell_command_output }}" 
+
+# - name: disable ssh
+#   uri:
+#     url: "https://10.10.1.30/rest/appliance/access/ssh "
+#     method: PUT
+#     body: '{"enabled": false}'
+#     force_basic_auth: yes
+#     validate_certs: no
+#     headers:
+#       Cookie: "{{ login.set_cookie }}"
+#     body_format: json

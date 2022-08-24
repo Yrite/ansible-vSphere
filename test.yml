@@ -1,0 +1,157 @@
+---
+- name: "Debug"
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - env/nested_vcsa_master.yml
+  tasks:
+
+  # - name: print wswitch name 
+  #   debug: 
+  #    msg: "{{ item.1.name }}"
+  #   loop: "{{ hosts | subelements('vswitch', 'skip_missing=True') }}"
+
+
+
+  # - name: print uplink name 
+  #   debug: 
+  #    msg: "{{ item.1.uplinks }}"
+  #   loop: "{{ hosts | subelements('vswitch', 'skip_missing=True') }}"
+  
+  # - name: build vmk properties
+  #   set_fact: 
+  #    vmk_properties: "{{ item.1.vmkernel }}"
+  #   loop: "{{ hosts | subelements('vswitch', 'skip_missing=True') }}"
+
+  # - name: print vmk propertues
+  #   debug: 
+  #    msg: "{{ item.netmask }}"
+  #   loop: "{{ vmk_properties }}"
+  
+  # - name: build uplink list
+  #   set_fact: 
+  #    uplinks_list: "{{ item.1.uplinks }}"
+  #   loop: "{{ hosts | subelements('dvswitch', 'skip_missing=True') }}"
+
+  # - name: print vmk properties
+  #   debug: 
+  #    msg: "{{ item }}"
+  #   loop: "{{ uplinks_list }}"
+
+#   - name: Set fact | DVS portgroups
+#     set_fact: 
+#       dvs_portgoups: |
+#         [
+#             {% for cluster in esxi_clusters %}
+#             {% if "dvs_switches" in esxi_clusters[cluster] %}
+#                 {% for dvs_switch in esxi_clusters[cluster].dvs_switches %}
+#                     {% for portgroup in esxi_clusters[cluster].dvs_switches[dvs_switch].portgroups %} 
+#                     {
+#                         "dvs_switch":   "{{ dvs_switch }}",
+#                         "portgroup_name": "{{ portgroup.name }}",
+#                         "vlan_id": "{{ portgroup.vlan_id }}",
+#                     },
+#                     {% endfor %}
+#                 {% endfor %}
+#             {% endif %}
+#             {% endfor %}
+#         ]
+
+#   - name: Set fact | DVS Management portgroups
+#     set_fact:
+#       dvs_portgoups_mgt: |
+#           [
+#               {% for host in esxi_hosts %}
+#                   {% if "dvs_switches" in esxi_clusters[host.cluster] %}
+#                       {% for dvs_switch in esxi_clusters[host.cluster].dvs_switches %}
+#                       {% for portgroup in esxi_clusters[host.cluster].dvs_switches[dvs_switch].portgroups %}
+#                       {% if "mgmt" in portgroup%}
+#                               {
+#                                   "esxi_name":      "{{ host.name }}",
+#                                   "esxi_cluster":   "{{ host.cluster }}",
+#                                   "dvs_switch":     "{{ dvs_switch }}",
+#                                   "portgroup_name": "{{ portgroup.name }}",
+#                               },
+#                       {% endif %}
+#                       {% endfor %}
+#                       {% endfor %}
+#                   {% endif %}
+#               {% endfor %}
+#           ]
+
+#   - name: Set fact | DVS name
+#     set_fact:
+#       dvs_switches_name: "{{ dvs_portgoups | map(attribute='dvs_switch') | list | unique }}"
+
+#   - name: Gather vswitch info about all ESXi Host in given Cluster
+#     community.vmware.vmware_vswitch_info:
+#       hostname: "{{ vcsa_fqdn }}"
+#       username: "administrator@{{ vcsa_sso_domain }}"
+#       password: "{{ vcsa_password }}"
+#       validate_certs: False
+#       esxi_hostname: "{{ item.name }}"
+#     delegate_to: localhost
+#     register: all_hosts_vswitch_info
+#     loop: "{{ esxi_hosts }}"
+
+#   - name: Set fact | hosts free_vmnic
+#     set_fact:
+#       hosts_free_vmnic: |
+#           [
+#             {% for hosts in all_hosts_vswitch_info.results %}
+#                 {% for host in hosts.hosts_vswitch_info %}
+#                     {% for use_vmnic in hosts.hosts_vswitch_info[host].vSwitch0.pnics %}
+#                         {% if use_vmnic == 'vmnic1' -%}
+#                             {
+#                                 "esxi_name": "{{ host }}",
+#                                 "use_vmnic": "{{ use_vmnic }}",
+#                                 "free_vmnic": "vmnic0",
+#                             },
+#                         {%- else -%}
+#                             {
+#                                 "esxi_name": "{{ host }}",
+#                                 "use_vmnic": "{{ use_vmnic }}",
+#                                 "free_vmnic": "vmnic1",
+#                             },
+#                         {%- endif -%}
+#                     {% endfor %}
+#                 {% endfor %}
+#             {% endfor%}
+#           ]
+
+#   - name: Set fact | DVS switch by host
+#     set_fact:
+#       hosts_dvs_switches: |
+#           [
+#             {% for host in esxi_hosts %}
+#                 {% if "dvs_switches" in esxi_clusters[host.cluster] %}
+#                     {% for dvs_switch in esxi_clusters[host.cluster].dvs_switches %}
+#                         {% if "uplinks" in esxi_clusters[host.cluster].dvs_switches[dvs_switch] -%}
+#                             {
+#                                 "esxi_name":      "{{ host.name }}",
+#                                 "esxi_cluster":   "{{ host.cluster }}",
+#                                 "dvs_switch":     "{{ dvs_switch }}",
+#                                 "uplink1":        "{{ esxi_clusters[host.cluster].dvs_switches[dvs_switch].uplinks[0] }}",
+#                                 "uplink2":        "{{ esxi_clusters[host.cluster].dvs_switches[dvs_switch].uplinks[1] }}",
+#                             },
+#                         {%- else -%}
+#                             {% set host_free_vmnic = hosts_free_vmnic | selectattr("esxi_name", "equalto", host.name) %}
+#                             {% for vmnic in host_free_vmnic %}
+#                                 {
+#                                     "esxi_name":      "{{ host.name }}",
+#                                     "esxi_cluster":   "{{ host.cluster }}",
+#                                     "dvs_switch":     "{{ dvs_switch }}",
+#                                     "uplink1":        "{{ vmnic.free_vmnic }}",
+#                                     "uplink2":        "{{ vmnic.use_vmnic }}",
+#                                 },
+#                             {% endfor %}
+#                         {%- endif -%}
+#                     {% endfor %}
+#                 {% endif %}
+#             {% endfor %}
+#           ]
+
+  - name: print var 
+    debug: 
+     msg: "{{ item.1.name }}"
+    loop: "{{ esxi_hosts | subelements('esxi_vmks', 'skip_missing=True') }}"

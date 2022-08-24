@@ -1,0 +1,199 @@
+---
+## VCSA variables ##
+temp_folder: "/tmp"
+## VCSA
+iso_source_file:    "/mnt/templates/VMware-VCSA-all-7.0.2-17958471.iso"
+vcsa_template:       "vCenter_v7.0.0_embedded_vCSA_on_ESXi.j2"
+vcsa_network:        "VM Network"
+vcsa_datastore:      "local"
+vcsa_size:           "Tiny"
+vcsa_name:           "lab-vcsa01"
+vcsa_fqdn:           "lab-vcsa01.nested.lab"
+vcsa_ip:             "10.10.1.30"
+vcsa_prefix:         "24"
+vcsa_gw:             "10.10.1.1"
+vcsa_dns:            "10.10.1.10,10.10.1.20"
+vcsa_domain:         "nested.lab"
+vcsa_ntp:            "10.10.1.10,10.10.1.20"
+vcsa_password:       "PaSSw0rd!"
+vcsa_sso_domain:     "vmw.nested.lab"
+vcsa_datacenter:     "PD00"
+send_target_address: "192.168.0.10,192.168.1.10"
+
+# Domain config
+baseUserDN: "CN=Users,DC=nested,DC=lab" 
+baseGroupDN: "CN=Builtin,DC=nested,DC=lab" 
+alias: "NESTED" 
+username: "CN=Administrator,CN=Users,DC=nested,DC=lab"  
+primaryURL: "ldap://10.10.1.10:389"
+
+## vSphere Folders
+vSphere_folders: 
+  - name: staging
+    type: "host"
+  - name: Services
+    subfolders:
+    - ADDNS
+    - Backup
+    - NSX
+    type: "vm"
+  - name: Security
+    subfolders:
+    - WAF
+    folder_type: vm
+    type: "vm"
+  - name: SAN
+    type: "datastore"
+  - name: DWS
+    type: "network"
+
+## vSphere Clusters
+
+esxi_clusters:
+  pd00-mclu01:
+    DRS: false 
+    HA: false
+    cluster_evc_mode: intel-merom
+    cluster_ha_host_monitoring: enabled
+    cluster_ha_vm_monitoring: vmMonitoringDisabled
+    cluster_apd_response: disabled
+    cluster_pdl_response: disabled
+    cluster_host_isolation_response: none
+    cluster_auto_compute_percentages: true
+    cluster_failover_level: 1
+    drsrules:
+      - name: vcsa01-vcsa02-anty-affinity-rule-001
+        vms: ["lab-vcsa01","lab-vcsa02"]
+        affinity_rule: false
+      - name: ad01-ad02-anty-affinity-rule-001
+        vms: ["lab-ad01","lab-ad02"]
+        affinity_rule: false
+    datastores:
+      pd00-truenas_mclu_01:
+        - name: pd00-truenas_mclu_01_lun_7b64
+          naa:  naa.6589cfc000000aa1e96f528a4de87b64
+    dvs_switches:
+      pd00-mclu01-mgmt:
+          portgroups:
+            - name: "mgmt-dvs-management"
+              mgmt: true
+              vlan_id: "0"
+            
+  pd00-dmz01:
+    DRS: true
+    HA: false
+    cluster_evc_mode: intel-merom
+    cluster_ha_host_monitoring: enabled
+    cluster_ha_vm_monitoring: vmMonitoringDisabled
+    cluster_apd_response: disabled
+    cluster_pdl_response: disabled
+    cluster_host_isolation_response: none
+    cluster_auto_compute_percentages: true
+    cluster_failover_level: 1
+    datastores:
+      pd00-truenas_dmz_01:
+        - name: pd00-truenas_dmz_01_lun_85c9
+          naa:  naa.6589cfc000000f08e0c1b160b9ff85c9
+    dvs_switches:
+      pd00-mclu01-mgmt:
+          portgroups:
+            - name: "dmz-dvs-management"
+              mgmt: true
+              vlan_id: "0"
+            
+
+## ESXi hosts
+esxi_hosts:
+- name: lab-esxi02.nested.lab
+  cluster:    pd00-mclu01
+  user:       root
+  password:   "Pa$$w0rd"
+  esxi_folder: "/PD00/host/staging"
+  esxi_advanced_settings_options:
+  - 'Config.HostAgent.log.level': 'info'
+  esxi_vswitch:
+        - name:     "iSCSI-SW01"
+          uplink:   ["vmnic2"]
+        - name:     "iSCSI-SW02"
+          uplink:   ["vmnic3"]
+  esxi_vmks:
+        - name: "VMK-iSCSI01"
+          vmswitch: "iSCSI-SW01"
+          stack: default
+          ipv4: "192.168.0.102"
+          netmask:  "255.255.255.0"
+        - name: "VMK-iSCSI02"
+          vmswitch: "iSCSI-SW02"
+          stack: default
+          ipv4: "192.168.1.102"
+          netmask:  "255.255.255.0"
+
+  iscsi_targets:
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-10.org.freenas.ctl"
+          ip:   "192.168.0.10"
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-11.org.freenas.ctl"
+          ip:   "192.168.1.10"
+          
+- name: lab-esxi03.nested.lab
+  cluster:    pd00-mclu01
+  user:       root
+  password:   "Pa$$w0rd"
+  esxi_folder: "/PD00/host/staging"
+  esxi_vswitch:
+        - name:     "iSCSI-SW01"
+          uplink:   ["vmnic2"]
+        - name:     "iSCSI-SW02"
+          uplink:   ["vmnic3"]
+  esxi_vmks:
+        - name: "VMK-iSCSI01"
+          vmswitch: "iSCSI-SW01"
+          stack: default
+          ipv4: "192.168.0.103"
+          netmask:  "255.255.255.0"
+        - name: "VMK-iSCSI02"
+          vmswitch: "iSCSI-SW02"
+          stack: default
+          ipv4: "192.168.1.103"
+          netmask:  "255.255.255.0"
+  iscsi_targets:
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-10.org.freenas.ctl"
+          ip:   "192.168.0.10"
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-11.org.freenas.ctl"
+          ip:   "192.168.1.10"
+
+- name: lab-esxi04.nested.lab
+  cluster:    pd00-mclu01
+  user:       root
+  password:   "Pa$$w0rd"
+  esxi_folder: "/PD00/host/staging"
+  esxi_advanced_settings_options:
+  - 'Config.HostAgent.log.level': 'info'
+  esxi_vswitch:
+        - name:     "iSCSI-SW01"
+          uplink:   ["vmnic2"]
+        - name:     "iSCSI-SW02"
+          uplink:   ["vmnic3"]
+  esxi_vmks:
+        - name: "VMK-iSCSI01"
+          vmswitch: "iSCSI-SW01"
+          stack: default
+          ipv4: "192.168.0.104"
+          netmask:  "255.255.255.0"
+        - name: "VMK-iSCSI02"
+          vmswitch: "iSCSI-SW02"
+          stack: default
+          ipv4: "192.168.1.104"
+          netmask:  "255.255.255.0"
+  iscsi_targets:
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-10.org.freenas.ctl"
+          ip:   "192.168.0.10"
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-11.org.freenas.ctl"
+          ip:   "192.168.1.10"
+
+...

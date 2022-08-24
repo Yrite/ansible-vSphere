@@ -1,0 +1,52 @@
+    - name: vCenter Login
+      uri:
+        url: "https://{{vcsa_fqdn}}/rest/com/vmware/cis/session"
+        force_basic_auth: yes
+        method: POST
+        user: "administrator@{{ vcsa_sso_domain }}"
+        password: "{{ vcsa_password }}"
+        validate_certs: no
+      register: login
+
+    - name: Get hosts from vCenter
+      uri:
+        url: "https://{{vcsa_fqdn}}/rest/vcenter/host"
+        force_basic_auth: yes
+        validate_certs: no
+        headers:
+          Cookie: "{{ login.set_cookie }}"
+      register: vchosts
+
+    - name: Build host list  
+      set_fact:
+         host_list: "{{ vchosts | json_query('json.value[*].name') }}" 
+
+    - name: Gather vmware host facts from vCenter
+      community.vmware.vmware_host_facts:
+        hostname: "{{ vcsa_fqdn }}"
+        username: "administrator@{{ vcsa_sso_domain }}"
+        password: "{{ vcsa_password }}"
+        validate_certs: False
+        esxi_hostname: "{{ item }}"
+      register: host_facts
+      delegate_to: localhost
+      loop: "{{ host_list }}"
+  
+    # - name: print cluster lists 
+    #   debug:
+    #     msg: "{{ item.ansible_facts.ansible_in_maintenance_mode }}"  
+         
+    - name: Manage multiple settings for an ESXi host
+      community.vmware.vmware_host_config_manager:
+        hostname: "{{ vcsa_fqdn }}"
+        username: "administrator@{{ vcsa_sso_domain }}"
+        password: "{{ vcsa_password }}"
+        validate_certs: False
+        esxi_hostname: "{{ item.ansible_facts.ansible_hostname }}"
+        options:
+          'Net.TeamPolicyUpDelay': '360'
+      delegate_to: localhost
+      loop: "{{ host_facts.results }}"
+      when: item.ansible_facts.ansible_in_maintenance_mode | bool 
+
+    

@@ -1,0 +1,3 @@
+---
+# tasks file for add_configure_vmotion_vmk
+- include_tasks: add_configure_vmotion_vmk.yml

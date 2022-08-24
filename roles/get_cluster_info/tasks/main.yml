@@ -1,0 +1,3 @@
+---
+# tasks file for get_cluster_info
+- include_tasks: get_cluster_info.yml 

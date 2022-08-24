@@ -1,0 +1,197 @@
+---
+- name: Set fact | DVS portgroups
+  set_fact: 
+    dvs_portgoups: |
+        [
+            {% for cluster in esxi_clusters %}
+            {% if "dvs_switches" in esxi_clusters[cluster] %}
+                {% for dvs_switch in esxi_clusters[cluster].dvs_switches %}
+                    {% for portgroup in esxi_clusters[cluster].dvs_switches[dvs_switch].portgroups %} 
+                    {
+                        "dvs_switch":   "{{ dvs_switch }}",
+                        "portgroup_name": "{{ portgroup.name }}",
+                        "vlan_id": "{{ portgroup.vlan_id }}",
+                    },
+                    {% endfor %}
+                {% endfor %}
+            {% endif %}
+            {% endfor %}
+        ]
+
+- name: Set fact | DVS Management portgroups
+  set_fact:
+      dvs_portgoups_mgt: |
+          [
+              {% for host in esxi_hosts %}
+                  {% if "dvs_switches" in esxi_clusters[host.cluster] %}
+                      {% for dvs_switch in esxi_clusters[host.cluster].dvs_switches %}
+                      {% for portgroup in esxi_clusters[host.cluster].dvs_switches[dvs_switch].portgroups %}
+                      {% if "mgmt" in portgroup%}
+                              {
+                                  "esxi_name":      "{{ host.name }}",
+                                  "esxi_cluster":   "{{ host.cluster }}",
+                                  "dvs_switch":     "{{ dvs_switch }}",
+                                  "portgroup_name": "{{ portgroup.name }}",
+                              },
+                      {% endif %}
+                      {% endfor %}
+                      {% endfor %}
+                  {% endif %}
+              {% endfor %}
+          ]
+
+
+- name: Set fact | DVS name
+  set_fact:
+    dvs_switches_name: "{{ dvs_portgoups | map(attribute='dvs_switch') | list | unique }}"
+
+- name: Gather vswitch info about all ESXi Host in given Cluster
+  community.vmware.vmware_vswitch_info:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.name }}"
+  delegate_to: localhost
+  register: all_hosts_vswitch_info
+  loop: "{{ esxi_hosts }}"
+
+- name: Set fact | hosts free_vmnic
+  set_fact:
+      hosts_free_vmnic: |
+          [
+            {% for hosts in all_hosts_vswitch_info.results %}
+                {% for host in hosts.hosts_vswitch_info %}
+                    {% for use_vmnic in hosts.hosts_vswitch_info[host].vSwitch0.pnics %}
+                        {% if use_vmnic == 'vmnic1' -%}
+                            {
+                                "esxi_name": "{{ host }}",
+                                "use_vmnic": "{{ use_vmnic }}",
+                                "free_vmnic": "vmnic0",
+                            },
+                        {%- else -%}
+                            {
+                                "esxi_name": "{{ host }}",
+                                "use_vmnic": "{{ use_vmnic }}",
+                                "free_vmnic": "vmnic1",
+                            },
+                        {%- endif -%}
+                    {% endfor %}
+                {% endfor %}
+            {% endfor%}
+          ]
+
+- name: Set fact | DVS switch by host
+  set_fact:
+      hosts_dvs_switches: |
+          [
+            {% for host in esxi_hosts %}
+                {% if "dvs_switches" in esxi_clusters[host.cluster] %}
+                    {% for dvs_switch in esxi_clusters[host.cluster].dvs_switches %}
+                        {% if "uplinks" in esxi_clusters[host.cluster].dvs_switches[dvs_switch] -%}
+                            {
+                                "esxi_name":      "{{ host.name }}",
+                                "esxi_cluster":   "{{ host.cluster }}",
+                                "dvs_switch":     "{{ dvs_switch }}",
+                                "uplink1":        "{{ esxi_clusters[host.cluster].dvs_switches[dvs_switch].uplinks[0] }}",
+                                "uplink2":        "{{ esxi_clusters[host.cluster].dvs_switches[dvs_switch].uplinks[1] }}",
+                            },
+                        {%- else -%}
+                            {% set host_free_vmnic = hosts_free_vmnic | selectattr("esxi_name", "equalto", host.name) %}
+                            {% for vmnic in host_free_vmnic %}
+                                {
+                                    "esxi_name":      "{{ host.name }}",
+                                    "esxi_cluster":   "{{ host.cluster }}",
+                                    "dvs_switch":     "{{ dvs_switch }}",
+                                    "uplink1":        "{{ vmnic.free_vmnic }}",
+                                    "uplink2":        "{{ vmnic.use_vmnic }}",
+                                },
+                            {% endfor %}
+                        {%- endif -%}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+          ]
+
+- name: Create dvSwitch
+  community.vmware.vmware_dvswitch:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: "{{ vcsa_datacenter }}"
+    switch: "{{ item }}"
+    version: "6.6.0"
+    mtu: "9000"
+    uplink_quantity: "2"
+    discovery_protocol: cdp
+    discovery_operation: both
+    state: present
+  loop: "{{ dvs_switches_name }}"
+  delegate_to: localhost
+
+- name: Create vlan portgroup
+  community.vmware.vmware_dvs_portgroup:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    portgroup_name: "{{ item.portgroup_name }}"
+    switch_name: "{{ item.dvs_switch }}"
+    vlan_id: "{{ item.vlan_id }}"
+    port_binding: static
+    state: present
+  delegate_to: localhost
+  loop: "{{ dvs_portgoups }}"
+
+- name: Migrate uplinks to the VDS
+  community.vmware.vmware_dvs_host:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.esxi_name }}"
+    switch_name: "{{ item.dvs_switch }}"
+    vmnics: "{{ item.uplink1 }}"
+    state: present
+  loop: "{{ hosts_dvs_switches }}"
+
+
+- name: Migrate vmk0 to the VDS
+  community.vmware.vmware_migrate_vmk:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    esxi_hostname: "{{ item.esxi_name }}"
+    device: 'vmk0'
+    current_switch_name: 'vSwitch0'
+    current_portgroup_name: 'Management Network'
+    migrate_switch_name: "{{ item.dvs_switch }}"
+    migrate_portgroup_name: "{{ item.portgroup_name }}"
+  loop: "{{ dvs_portgoups_mgt }}"
+
+
+
+
+# - name: Create vmk1 for vMotion
+#   community.vmware.vmware_vmkernel:
+#     hostname: "{{ Nested_vCenter.FQDN }}"
+#     username: "{{ Nested_vCenter.User }}"
+#     password: "{{ Nested_vCenter.Password }}"
+#     validate_certs: false
+#     esxi_hostname: "{{ item.value.FQDN | lower }}"
+#     portgroup_name: "{{ item.value.vmk.vmk1.PortGroup }}"
+#     dvswitch_name: "{{ Nested_vCenter.Networking.vSwitch.Name }}"
+#     enable_vmotion: true
+#     mtu: "{{ item.value.vmk.vmk1.MTU }}"
+#     network:
+#       type: 'static'
+#       ip_address: "{{ item.value.vmk.vmk1.Address.IPv4.Address }}"
+#       subnet_mask: "{{ (item.value.vmk.vmk1.Address.IPv4.Address + '/' + item.value.vmk.vmk1.Address.IPv4.Prefix) | ipaddr('netmask') }}"
+#       tcpip_stack: "{{ item.value.vmk.vmk1.Stack }}"
+#     state: present
+#   loop: "{{ Nested_ESXi.Host | dict2items }}"
+#   when: 
+#     - Nested_Clusters[item.value.Cluster]['DeployHosts'] == true
+

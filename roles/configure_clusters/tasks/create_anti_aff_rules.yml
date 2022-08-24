@@ -1,0 +1,15 @@
+- name: Create DRS Anti-Affinity Rule for VM-VM
+  community.vmware.vmware_vm_vm_drs_rule:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    cluster_name: "{{ item.cluster_name }}"
+    validate_certs: False
+    vms: "{{ item.rule_vms }}"
+    enabled: True
+    drs_rule_name: "{{ item.rule_name }}"
+    mandatory: True
+    affinity_rule: "{{ item.rule_affinity }}"
+  loop: "{{ clusters_drs_rules }}"
+  delegate_to: localhost
+  

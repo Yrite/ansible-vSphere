@@ -1,0 +1,60 @@
+lab-vcsa01:
+    name: lab-vcsa01
+    ip: 10.10.1.30
+lab-vcsa02:
+    name: lab-vcsa02
+    ip: 10.10.1.40
+lab-vcd01:
+    name: lab-vcd01
+    ip: 10.10.1.51
+lab-vcd02:
+    name: lab-vcd02
+    ip: 10.10.1.52
+lab-vcd03:
+    name: lab-vcd03
+    ip: 10.10.1.53
+lab-vrops01:
+    name: lab-vrops01
+    ip: 10.10.1.60
+lab-vrops02:
+    name: lab-vrops02
+    ip: 10.10.1.61
+lab-vrops03:
+    name: lab-vrops03
+    ip: 10.10.1.62
+lab-vrops04:
+    name: lab-vrops04
+    ip: 10.10.1.63
+lab-nsxt01:
+    name: ab-nsxt01
+    ip: 10.10.1.70
+lab-nsxt02:
+    name: ab-nsxt02
+    ip: 10.10.1.71
+lab-nsxt03:
+    name: ab-nsxt03
+    ip: 10.10.1.72
+lab-loginsg01:
+    name: lab-loginsg01
+    ip: 10.10.1.80
+lab-loginsg02:
+    name: lab-loginsg02
+    ip: 10.10.1.81
+ab-ntp01:
+    name: ab-ntp01
+    ip: 10.10.1.90
+lab-esx02:
+    name: lab-esx02
+    ip: 10.10.1.102
+lab-esx03:
+    name: lab-esx03
+    ip: 10.10.1.103
+lab-esx04:
+    name: lab-esx04
+    ip: 10.10.1.104
+lab-esx05:
+    name: lab-esx05
+    ip: 10.10.1.105
+lab-esx06:
+    name: lab-esx06
+    ip: 10.10.1.106

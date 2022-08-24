@@ -1,0 +1,83 @@
+---
+- name: Gather cluster info from given datacenter
+  community.vmware.vmware_cluster_info:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter: "{{ vcsa_datacenter }}"
+  delegate_to: localhost
+  register: cluster_info
+  
+- name: print_cluster_info
+  debug:
+    msg: "{{ cluster_info }}"
+
+# - name: Gather capability info about all ESXi Host in given Cluster
+#   community.vmware.vmware_host_capability_info:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     cluster_name: "{{item.key}}"
+#     validate_certs: False
+#   delegate_to: localhost
+#   register: all_cluster_hosts_info
+#   loop: "{{ esxi_clusters | dict2items }}"
+
+# - name: Gather info about all ESXi Host in given Cluster
+#   community.vmware.vmware_host_config_info:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     cluster_name: "{{item.key}}"
+#     validate_certs: False
+#   delegate_to: localhost
+#   register: all_cluster_hosts_info
+#   loop: "{{ esxi_clusters | dict2items }}"
+
+# - name: Gather iSCSI configuration information of ESXi host
+#   community.vmware.vmware_host_iscsi_info:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     esxi_hostname: "{{ item.name}}"
+#     validate_certs: False
+#   register: iscsi_info
+#   loop: "{{ esxi_hosts }}"
+
+# - name: Gather all domain user of vsphere.local
+#   community.vmware.vcenter_domain_user_group_info:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     validate_certs: False
+#     domain: vmw.nested.lab
+#     search_string: ''
+#     find_users: true
+#     find_groups: false
+#   register: gather_all_domain_user_result
+  
+# - name: Gather info about vCenter Extensions
+#   community.vmware.vcenter_extension_info:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     validate_certs: False
+#   register: ext_info
+#   delegate_to: localhost
+
+# - name: Gather info about all ESXi Host in given Cluster
+#   community.vmware.vmware_host_service_info:
+#     hostname: "{{ vcsa_fqdn }}"
+#     username: "administrator@{{ vcsa_sso_domain }}"
+#     password: "{{ vcsa_password }}"
+#     validate_certs: False
+#     cluster_name: "{{item.key}}"
+#   delegate_to: localhost
+#   register:  services_info
+#   loop: "{{ esxi_clusters | dict2items }}"
+
+# - name: print cluster info 
+#   debug:
+#     msg: "{{ services_info }}" 
+

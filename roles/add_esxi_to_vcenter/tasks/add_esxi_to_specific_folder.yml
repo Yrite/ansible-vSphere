@@ -1,0 +1,19 @@
+---
+- name: Add ESXi Host to vCenter under a specific folder and clusters
+  community.vmware.vmware_host:
+    hostname: "{{ vcsa_fqdn }}"
+    username: "administrator@{{ vcsa_sso_domain }}"
+    password: "{{ vcsa_password }}"
+    validate_certs: False
+    datacenter_name: "{{ vcsa_datacenter }}"
+    # folder: "{{ item.esxi_folder }}"
+    cluster_name:    "{{ item.cluster }}"
+    esxi_hostname: "{{ item.name }}"
+    esxi_username: "{{ item.user }}"
+    esxi_password: "{{ item.password }}"
+    state: present
+  loop: "{{ esxi_hosts }}"
+  delegate_to: localhost
+
+
+...

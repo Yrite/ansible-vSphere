@@ -1,0 +1,13 @@
+---
+## Domain Controllers
+src_template: /mnt/templates/win2k19/windows-ashurov-2019-datacenter.ovf
+esxi_datastore: local
+vm_network: 'VM Network'
+vm_netmask: '24'
+vm_gateway: '10.10.1.1'
+domain: "nested.lab"
+netbios_domain: "nested"
+domain_admin: "administrator@{{ domain }}"
+domain_safemode_password: NPepiF4CIsz12pSZ7bCv
+sysprep_unnatend: "/home/yuskazagachev/git/ansible-vsphere/roles/vm_deploy/files/unattend.xml"
+

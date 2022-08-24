@@ -1,0 +1,74 @@
+- name: copy file to vm
+  community.vmware.vmware_guest_file_operation:
+    hostname: "{{ esxi_address }}"
+    username: "{{ esxi_username }}"
+    password: "{{ esxi_password }}"
+    validate_certs: no
+    vm_id: "{{ inventory_hostname }}"
+    vm_username: Administrator
+    vm_password: "{{ ansible_password }}"
+    copy:
+        src: "{{ sysprep_unnatend }}"
+        dest: "c:\\windows\\temp\\unattend.xml"
+        overwrite: False
+  delegate_to: localhost
+
+- name: Sysprep Vms
+  local_action:
+    module: vmware_vm_shell
+    hostname: '{{ esxi_address }}'
+    username: '{{ esxi_username }}'
+    password: '{{ esxi_password }}'  
+    validate_certs: no 
+    vm_username: Administrator
+    vm_password: '{{ ansible_password }}'
+    vm_id: '{{ inventory_hostname }}'
+    vm_shell: 'c:\windows\System32\Sysprep\sysprep.exe'
+    vm_shell_args: '/oobe /generalize /reboot /quiet /unattend:C:\windows\temp\unattend.xml'
+  register: sysprep
+
+
+- name: Wait for server to start
+  local_action:
+    module: wait_for
+      timeout=180
+  when: sysprep.changed
+
+
+- name: Wait for VMware tools to become available by name
+  community.vmware.vmware_guest_tools_wait:
+    hostname: "{{ esxi_address }}"
+    username: "{{ esxi_username }}"
+    password: "{{ esxi_password }}"
+    validate_certs: no
+    name: '{{ inventory_hostname }}'
+  delegate_to: localhost
+  when: sysprep.changed
+
+- name: Configure IP address via vmware_vm_shell
+  local_action:
+    module: vmware_vm_shell
+    hostname: '{{ esxi_address }}'
+    username: '{{ esxi_username }}'
+    password: '{{ esxi_password }}'  
+    validate_certs: no 
+    vm_username: Administrator
+    vm_password: '{{ ansible_password }}'
+    vm_id: '{{ inventory_hostname }}'
+    vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
+    vm_shell_args: '-command "(new-netipaddress -InterfaceAlias Ethernet0 -IPAddress {{ hostvars[inventory_hostname].ansible_host }} -prefixlength {{ vm_netmask }} -defaultgateway {{ vm_gateway }})"'
+    wait_for_process: true
+
+- name: Rename Computer via vmware_vm_shell
+  local_action:
+    module: vmware_vm_shell
+    hostname: '{{ esxi_address }}'
+    username: '{{ esxi_username }}'
+    password: '{{ esxi_password }}'  
+    validate_certs: no 
+    vm_username: Administrator
+    vm_password: '{{ ansible_password }}'
+    vm_id: '{{ inventory_hostname }}'
+    vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
+    vm_shell_args: '-command "(Rename-Computer -NewName {{ inventory_hostname }} -Force )"'
+    wait_for_process: true

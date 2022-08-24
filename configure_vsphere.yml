@@ -1,0 +1,20 @@
+- hosts: localhost
+  gather_facts: no
+  name: Configure vSphere vcsa
+  vars_files:
+    - env/nested_vcsa_master.yml
+  become: true
+  
+  roles:
+    # - role: create_dc_and_clusters
+    # - role: configure_clusters
+    # - role: create_vsphere_folders
+    # - role: add_esxi_to_vcenter
+    # - role: configure_esxi_vss
+    # - role: configure_esxi_iscsi
+    # - role: create_configure_dvs
+    # - role: configure_esxi_adv_settings
+    # - role: get_vsphere_folder_info
+    # - role: place_esxi_into_mm
+    - role: get_cluster_info
+    # - role: configure_sso

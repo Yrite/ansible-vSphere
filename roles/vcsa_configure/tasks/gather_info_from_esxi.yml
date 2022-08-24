@@ -1,0 +1,16 @@
+- name: Gather facts about all ESXi Host in given Cluster
+  community.vmware.vmware_host_config_facts:
+         hostname: "{{ vcsa_fqdn }}"
+         username: "administrator@{{ vcsa_sso_domain }}"
+         password: "{{ vcsa_password }}"
+         cluster_name: "{{ item.key }}"
+         validate_certs: False
+  loop: "{{ esxi_clusters | dict2items }}"
+  delegate_to: localhost
+  register: "host_data"
+
+
+- name: test 
+  debug:
+    msg: "{{ host_data }}"
+  loop: "{{ esxi_clusters | dict2items }}"

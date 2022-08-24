@@ -1,0 +1,4 @@
+---
+# tasks file for create_dc_and_clusters
+- include_tasks: create_dc.yml
+- include_tasks: create_clusters.yml

@@ -1,0 +1,52 @@
+---
+- name: Create temp directory
+  ansible.builtin.file:
+    path: "{{ temp_folder }}"
+    mode: "666" 
+    state: directory
+
+- name: Check if vCenter is already installed
+  ansible.builtin.uri:
+    url: https://{{ vcsa_ip }}
+    validate_certs: False
+    timeout: 5
+  register: vcenter_check
+  ignore_errors: True
+  failed_when: false
+  no_log: True  
+
+- name: Create vCenter with embedded PSC installation template
+  ansible.builtin.template: 
+    src:  "{{ vcsa_template }}"
+    dest: "{{ temp_folder }}/vcsa_{{ vcsa_name }}.json"
+    mode: "666"
+  when:
+    - vcenter_check.status != 200
+
+- name: Mount vCenter ISO as read-only and do not automatically mount with 'mount -a'
+  ansible.posix.mount:
+    path:   "{{ iso_mount_point }}"
+    src:    "{{ iso_source_file }}"
+    fstype: iso9660
+    opts:   ro,noauto
+    state:  mounted
+  when: vcenter_check.status != 200
+
+- name: Notify user of vCenter install time
+  ansible.builtin.debug:
+    msg: "Deploying vCenter will take about 20 minutes..."
+  when: vcenter_check.status != 200
+      
+- name: Perform vCenter CLI-based installation
+  ansible.builtin.command: "./vcsa-deploy install --accept-eula --no-ssl-certificate-verification --acknowledge-ceip {{ temp_folder }}/vcsa_{{ vcsa_name }}.json"
+  args:
+    chdir: "{{ iso_mount_point }}/vcsa-cli-installer/lin64/"
+  register: vcdeploy
+  when: vcenter_check.status != 200
+
+- name: Unmount vCenter ISO
+  ansible.posix.mount:
+    path:   "{{ iso_mount_point }}"
+    state:  absent
+  when:
+    - vcenter_check.status != 200

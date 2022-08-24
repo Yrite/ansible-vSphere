@@ -1,0 +1,53 @@
+---
+hosts:
+  - name: esxi_00
+    cluster_name: my_cluster
+    user: root
+    password: pa$$w0rd
+    esxi_folder: folder
+    esxi_advanced_settings_options: 
+    vswitch:
+    - name: iSCSI-SW01
+      mellanox:
+        uplinks:
+        - vmnic2 
+      vmkernel:
+      - name: vmk1
+        ipv4: "x.x.x.x"
+        netmask: "255.255.255.0"
+        stack: "default"
+        mtu: "1500"
+        vlan_id: "0"
+      portgroup:
+      - name: iSCSI-SW01
+        vlan: "0"
+    - name: "iSCSI-SW02"
+      uplinks:
+      - vmnic3
+      vmkernel:
+      - name: vmk2
+        ipv4: "x.x.x.x"
+        netmask: "255.255.255.0"
+        stack: "default"
+        mtu: "1500"
+        vlan_id: "0"
+      portgroup:
+       - name: "iSCSI-SW02"
+         vlan: "0"
+    dvswitch: 
+    - name: "dvs-01"
+      uplinks:
+      - vmnic0
+      - vmnic1
+      portgroup:
+      - name: "mgmt"
+        vlan: "0"  
+    iscsi_targets:
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-10.org.freenas.ctl"
+          ip:   "192.168.0.10"
+        - name: "lab-truenas01.nested.lab"
+          iqn:  "iqn.2005-11.org.freenas.ctl"
+          ip:   "192.168.1.10"
+  
+ 

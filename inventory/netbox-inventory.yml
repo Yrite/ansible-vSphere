@@ -1,0 +1,16 @@
+plugin: netbox.netbox.nb_inventory
+validate_certs: True
+config_context: True
+interfaces: True
+flatten_config_context: yes
+flatten_local_context_data: yes
+fetch_all: False
+group_names_raw: yes
+ansible_host_dns_name: true
+group_by:
+  - tags
+query_filters:
+  - platform: esxi
+  - status: active
+  - site: pd03
+  - tag: test
